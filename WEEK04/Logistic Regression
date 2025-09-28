@@ -1,0 +1,70 @@
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import platform
+
+#  운영체제에 맞는 한글 폰트 설정
+if platform.system() == 'Windows':
+    # 윈도우의 경우
+    plt.rc('font', family='Malgun Gothic')
+elif platform.system() == 'Darwin':
+    # Mac의 경우
+    plt.rc('font', family='AppleGothic')
+else:
+    # 리눅스의 경우 (나눔고딕 폰트 설치 필요)
+    plt.rc('font', family='NanumGothic')
+
+# 글꼴을 바꾼 뒤 마이너스 기호(-)가 깨지는 것을 방지
+plt.rc('axes', unicode_minus=False)
+
+# 1. 데이터 준비 (Iris 데이터셋)
+iris = load_iris()
+# 이진 분류를 위해 Versicolor(1)와 Virginica(2)만 사용하고, Petal Length(꽃잎 길이)만 사용
+X = iris.data[iris.target != 0, 2].reshape(-1, 1) # 꽃잎 길이
+y = iris.target[iris.target != 0] - 1            # 1 -> 0, 2 -> 1로 레이블 변경
+
+# 2. 학습/테스트 데이터 분리
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# 3. 모델 학습
+log_reg = LogisticRegression(solver='liblinear', random_state=42)
+log_reg.fit(X_train, y_train)
+
+# 4. 예측 및 확률 예측
+y_pred = log_reg.predict(X_test)
+y_proba = log_reg.predict_proba(X_test)
+
+# 5. 성능 평가
+accuracy = accuracy_score(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+print(f"정확도 (Accuracy): {accuracy:.4f}")
+print("\n혼동 행렬 (Confusion Matrix):\n", conf_matrix)
+print("\n분류 리포트:\n", classification_report(y_test, y_pred))
+
+# 6. 예측 결과 시각화 (결정 경계 시각화)
+plt.figure(figsize=(10, 6))
+# 0부터 7까지 0.01 간격으로 x축 데이터 생성
+X_new = np.linspace(0, 7, 1000).reshape(-1, 1)
+# 새로운 x축 데이터에 대한 예측 확률
+y_prob_new = log_reg.predict_proba(X_new)[:, 1]
+
+# 결정 경계 (Decision Boundary)
+# 확률이 0.5가 되는 지점 (분류 기준)을 결정 경계로 표시
+decision_boundary = X_new[y_prob_new >= 0.5][0]
+
+plt.plot(X_new, y_prob_new, "g-", linewidth=2, label="P(class=1)")
+plt.plot([decision_boundary, decision_boundary], [0, 1], "k:", label="결정 경계 (0.5)")
+plt.scatter(X[y==0], [0] * len(X[y==0]), marker='o', color='blue', label='클래스 0 (Versicolor)')
+plt.scatter(X[y==1], [1] * len(X[y==1]), marker='x', color='red', label='클래스 1 (Virginica)')
+
+plt.title('Logistic Regression: 꽃잎 길이에 따른 붓꽃 종류 분류')
+plt.xlabel('꽃잎 길이 (cm)')
+plt.ylabel('예측 확률 (P(class=1))')
+plt.legend()
+plt.grid(True)
+plt.show()
